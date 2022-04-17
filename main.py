@@ -37,7 +37,7 @@ while True:
 
         img = overlay_transparent(img, np.array(positioned_glasses), x, y)
 
-    if mode == 2:
+    elif mode == 2:
         for index, [x, y] in enumerate(landmarks):
             color = (0, 0, 255)
             x = int(x)
@@ -55,11 +55,13 @@ while True:
     if key == ord("1"):
         mode = 1
         glasses_img = openImage("assets/sunglasses.png")
-    if key == ord("2"):
+    elif key == ord("2"):
         mode = 1
         glasses_img = openImage("assets/glasses.png")
-    if key == ord("3"):
+    elif key == ord("3"):
         mode = 2
+    elif key == ord("4"):
+        mode = 3
 
     if cv2.getWindowProperty(WIN_NAME, cv2.WND_PROP_VISIBLE) < 1:
         break
