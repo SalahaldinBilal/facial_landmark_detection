@@ -12,42 +12,56 @@ pTime = 0
 model = load_model("assets/model.keras")
 glasses_img = openImage("assets/sunglasses.png")
 mode = 1
+face_cascade = cv2.CascadeClassifier(
+    'assets/haarcascade_frontalface_default.xml')
+
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
 while True:
     success, img = cap.read()
     smaller_size = min(img.shape[0], img.shape[1])
-    img = cv2.resize(img, (smaller_size, smaller_size))
-
+    # img = cv2.resize(img, (smaller_size, smaller_size))
+    gray_img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    faces = face_cascade.detectMultiScale(gray_img, 1.1, 4)
     cTime = time.time()
     fps = 1/(cTime-pTime)
     pTime = cTime
+    for (x, y, w, h) in faces:
 
-    model_image = prepare_image(img)
+        cropped_img = img[y:y+h, x:x+w]
 
-    y_pred = model.predict(np.expand_dims(model_image, axis=0))[0]
-    orig_size_x, orig_size_y = img.shape[0], img.shape[1]
+        model_image = prepare_image(cropped_img)
 
-    landmarks = parse_prediction(y_pred, orig_size_x, orig_size_y)
+        y_pred = model.predict(np.expand_dims(model_image, axis=0))[0]
+        orig_size_x, orig_size_y = img.shape[0], img.shape[1]
 
-    if mode == 1:
-        glasses_points = get_glasses_points(landmarks)
+        landmarks = parse_prediction(y_pred, w, h)
 
-        positioned_glasses, x, y = position_glasses(
-            glasses_img, glasses_points)
+        if mode == 1:
+            glasses_points = get_glasses_points(landmarks)
 
-        img = overlay_transparent(img, np.array(positioned_glasses), x, y)
+            positioned_glasses, x_e, y_e = position_glasses(
+                glasses_img, glasses_points)
 
-    elif mode == 2:
-        for index, [x, y] in enumerate(landmarks):
-            color = (0, 0, 255)
-            x = int(x)
-            y = int(y)
-            img = cv2.drawMarker(img, (x, y), color, thickness=1)
-            cv2.putText(img, str(index), (x, y + 5), color=color,
-                        thickness=1, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1)
+            img = overlay_transparent(
+                img, np.array(positioned_glasses), x_e + x, y_e + y)
+
+        elif mode == 2:
+            for index, [x, y] in enumerate(landmarks):
+                color = (0, 0, 255)
+                x = int(x)
+                y = int(y)
+                img = cv2.drawMarker(img, (x, y), color, thickness=1)
+                cv2.putText(img, str(index), (x, y + 5), color=color,
+                            thickness=1, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1)
 
     cv2.putText(img, f'FPS:{int(fps)}', (20, 70),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+    cv2.putText(img, f'DETECTED FACES:{len(faces)}', (200, 70),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
     cv2.imshow(WIN_NAME, img)
 
     key = cv2.waitKey(1)
